@@ -1,0 +1,61 @@
+---
+title: "Breeds impact on adoption"
+author: "Matthew Wilcox, Randy Otoo, Anthony Barrios, Arianne PozziBarba"
+output: pdf_document
+---
+
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+
+```
+
+
+```{r}
+animal_intake.df <- read_csv("Louisville_Metro_ky_-_Animal_Service_Intake_and_Outcome.csv")
+
+```
+
+```{r}
+dog_intake.df <- animal_intake.df %>% filter(animaltype == "DOG") %>% 
+  mutate(indate = str_remove(indate, " .*"),
+         outdate = str_remove(outdate, " .*"),
+         indate = as.Date(indate, format = "%Y/%m/%d"),
+         outdate = as.Date(outdate, format = "%Y/%m/%d"),
+         timeHeld = outdate - indate
+         )%>%
+  filter(intype == "STRAY", 
+         outtype != "DISPOSAL") %>%
+  select(outtype, sex, bites, petsize, color, breed, timeHeld)
+
+
+```
+
+
+```{r}
+pitbull_adopt_euth <- dog_intake.df %>%
+  select(outtype, breed) %>%
+  filter(
+    outtype == "ADOPTION" | outtype == "EUTH"
+  ) %>%
+  mutate(breed = case_when(
+    grepl("PIT BULL", breed) ~ "Is Pitbull",
+    TRUE ~ "Not Pitbull"
+  ))%>% group_by(outtype, breed) %>%
+  summarise(n = n()) %>%
+  pivot_wider(names_from = breed, values_from = n) %>%
+  column_to_rownames(., var = "outtype")
+
+pitbull_adopt_euth %>% kbl(caption = "Frequency Table of Pitbull and Adoption") %>%  kable_classic_2(full_width = F)
+
+
+```
+
+
+```{r}
+dt <- mtcars[1:5, 1:6]
+
+
+```
