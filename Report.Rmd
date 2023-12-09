@@ -4,6 +4,7 @@ author: "Matthew Wilcox, Randy Otoo, Anthony Barrios, Arianne PozziBarba"
 output: pdf_document
 ---
 
+# Libraries
 
 ```{r}
 library(tidyverse)
@@ -11,7 +12,7 @@ library(knitr)
 library(kableExtra)
 
 ```
-
+# Import and Clean Data
 
 ```{r}
 animal_intake.df <- read_csv("Louisville_Metro_ky_-_Animal_Service_Intake_and_Outcome.csv")
@@ -33,6 +34,7 @@ dog_intake.df <- animal_intake.df %>% filter(animaltype == "DOG") %>%
 
 ```
 
+# Probability
 
 ```{r}
 pitbull_adopt_euth <- dog_intake.df %>%
@@ -53,9 +55,3 @@ pitbull_adopt_euth %>% kbl(caption = "Frequency Table of Pitbull and Adoption") 
 
 ```
 
-
-```{r}
-dt <- mtcars[1:5, 1:6]
-
-
-```
