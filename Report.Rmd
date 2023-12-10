@@ -43,21 +43,223 @@ pitbull_adopt_euth <- dog_intake.df %>%
     outtype == "ADOPTION" | outtype == "EUTH"
   ) %>%
   mutate(breed = case_when(
-    grepl("PIT BULL", breed) ~ "Is Pitbull",
-    TRUE ~ "Not Pitbull"
+    grepl("PIT BULL", breed) ~ "Is_Pitbull",
+    TRUE ~ "Not_Pitbull"
   ))%>% group_by(outtype, breed) %>%
   summarise(n = n()) %>%
-  pivot_wider(names_from = breed, values_from = n) %>%
-  column_to_rownames(., var = "outtype")
+  pivot_wider(names_from = breed, values_from = n) 
+pitbull_adopt_euth_display <- pitbull_adopt_euth %>%
+  ungroup() %>%
+  add_row(outtype = "TOTAL",
+          Is_Pitbull = sum(pitbull_adopt_euth$Is_Pitbull), 
+          Not_Pitbull = sum(pitbull_adopt_euth$Not_Pitbull)
+          ) %>%
+  mutate( Total = Is_Pitbull + Not_Pitbull) %>%
+  column_to_rownames(., var = "outtype") 
+pitbull_adopt_euth <- pitbull_adopt_euth %>%
+  column_to_rownames(., var = "outtype") 
 
-pitbull_adopt_euth %>% kbl(caption = "Frequency Table of Pitbull and Adoption") %>%  kable_classic_2(full_width = F)
+
+
+pitbull_adopt_euth_display %>% kbl(caption = "Frequency Table of Pitbull and Adoption") %>%  kable_classic_2(full_width = F)
 
 
 ```
+
+
+```{r}
+total <- sum(pitbull_adopt_euth)
+
+# Probability of a (Prob is pitbull)
+a<- sum(pitbull_adopt_euth[1])/total
+
+# Probaility of (Adoption)
+
+b<- sum(pitbull_adopt_euth[1,])/total
+
+# Probability (b | a) (Prob Adopted given pitbull)
+bGivena<- pitbull_adopt_euth[1,1]/sum(pitbull_adopt_euth[1])
+ 
+# Probability (b | ¬a)
+bGivenNota<- pitbull_adopt_euth[1,2]/sum(pitbull_adopt_euth[2])
+
+# Probibility of Ands
+aANDb <- a * bGivena
+aANDnotb <- a * (1-bGivena)
+notaANDb<- (1-a) * bGivenNota
+notaANDnotb <- (1-a) *(1-bGivenNota)
+
+
+#Baysian
+aGivenb <- aANDb/b
+aGivenNotb <- aANDnotb/(1-b)
+
+```
+
+```{r}
+prob_type_col <- c("P(Is a Pitbull)", 
+                   "P(Not a Pitbull)", 
+                   "P(Adopted)", 
+                   "P(Euthanized)", 
+                   "P(Adopted | Is a Pitbull)",
+                   "P(Euthanized | Is a Pitbull)",
+                   "P(Adopted | Not A Pitbull)",
+                   "P(Euthanized | Not a Pitbull)",
+                   "P(Pitbull & Adopted)",
+                   "P(Pitbull & Euthanized)",
+                   "P(Not a Pitbull & Adopted)",
+                   "P(Not a Pitbull & Euthanized)",
+                   "p(Pitbull | Adopted)",
+                   "P(Not a Pitbull | Adopted)",
+                   "P(Pitbull | Euthanized)",
+                   "P(Not a Pitbull | Euthanized)"
+                   )
+prob_col<- c(paste(round(a*100,2),"%", sep = ""), #P(pitbull)
+             paste(round((1-a)*100,2),"%", sep = ""), #P(not pitbull)
+             paste(round((b)*100,2),"%", sep = ""), #P(Adopted)
+             paste(round((1-b)*100,2),"%", sep = ""),#P(euthanized)
+             paste(round((bGivena)*100,2),"%", sep = ""), #P(Adopted|pitbull)
+             paste(round((1-bGivena)*100,2),"%", sep = ""), #P(Euthanized|Pitbull)
+             paste(round((bGivenNota)*100,2),"%", sep = ""), #P(Adopted|not pit)
+             paste(round((1-bGivenNota)*100,2),"%", sep = ""), #P(Euthanized|notpit)
+             paste(round((aANDb)*100,2),"%", sep = ""), #P(P&A)
+             paste(round((aANDnotb)*100,2),"%", sep = ""), #P(P&E)
+             paste(round((notaANDb)*100,2),"%", sep = ""), #P(p'&A)
+             paste(round((notaANDnotb)*100,2),"%", sep = ""), #P(p1&E)
+             paste(round((aGivenb)*100,2),"%", sep = ""), # p(Pitbull | Adopted)
+             paste(round((1-aGivenb)*100,2),"%", sep = ""), # P(Not a Pitbull | Adopted)
+             paste(round((aGivenNotb)*100,2),"%", sep = ""), # P(Pitbull | Euthanized)
+             paste(round((1-aGivenNotb)*100,2),"%", sep = "") #P(Not a Pitbull | Euthanized)
+             )
+prob_df <- data.frame(Condition = prob_type_col, Probability = prob_col)
+prob_df %>% kbl()  %>%
+  kable_styling()
+```
+
+
+```{r}
+# if (!require("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# 
+# BiocManager::install("Rgraphviz")
+library("Rgraphviz")
+```
+
+```{r}
+total <- sum(pitbull_adopt_euth)
+
+# Probability of a (Prob is pitbull)
+a<- sum(pitbull_adopt_euth[1])/total
+ 
+# Probability (b | a) (Prob Adopted given pitbull)
+bGivena<- pitbull_adopt_euth[1,1]/sum(pitbull_adopt_euth[1])
+ 
+# Probability (b | ¬a)
+bGivenNota<- pitbull_adopt_euth[1,2]/sum(pitbull_adopt_euth[2])
+
+
+###################### Everything below here will be calculated
+ 
+# Calculate the rest of the values based upon the 3 variables above
+notbGivena<-1-bGivena
+notA<-1-a
+notbGivenNota<-1-bGivenNota
+ 
+#Joint Probabilities of a and B, a and notb, nota and b, nota and notb
+aANDb<-a*bGivena
+aANDnotb<-a*notbGivena
+notaANDb <- notA*bGivenNota
+notaANDnotb <- notA*notbGivenNota
+ 
+# Probability of B
+b<- aANDb + notaANDb
+notB <- 1-b
+ 
+# Bayes theorum - probabiliyt of A | B
+# (a | b) = Prob (a AND b) / prob (b)
+aGivenb <- aANDb / b
+ 
+# These are the labels of the nodes on the graph
+# To signify "Not A" - we use A' or A prime 
+ 
+node1<-"P"
+node2<-"Is Pitbull"
+node3<-"Not Pitbull"
+node4<-"IS Pitbull & Adopted"
+node5<-"Is Pitbull & Euthanized'"
+node6<-"Not Pitbull & Adopted"
+node7<-"Not Pitbull & Euthanized"
+nodeNames<-c(node1,node2,node3,node4, node5,node6, node7)
+ 
+rEG <- new("graphNEL", nodes=nodeNames, edgemode="directed")
+#Erase any existing plots
+# dev.off()
+ 
+# Draw the "lines" or "branches" of the probability Tree
+rEG <- addEdge(nodeNames[1], nodeNames[2], rEG, 1)
+rEG <- addEdge(nodeNames[1], nodeNames[3], rEG, 1)
+rEG <- addEdge(nodeNames[2], nodeNames[4], rEG, 1)
+rEG <- addEdge(nodeNames[2], nodeNames[5], rEG, 1)
+rEG <- addEdge(nodeNames[3], nodeNames[6], rEG, 1)
+rEG <- addEdge(nodeNames[3], nodeNames[7], rEG, 10)
+ 
+eAttrs <- list()
+ 
+q<-edgeNames(rEG)
+ 
+# Add the probability values to the the branch lines
+ 
+eAttrs$label <- c(toString(round(a,4)),toString(round(notA,4)),
+ toString(round(bGivena,4)), toString(round(notbGivena,4)),
+ toString(round(bGivenNota,4)), toString(round(notbGivenNota,4)))
+names(eAttrs$label) <- c(q[1],q[2], q[3], q[4], q[5], q[6])
+edgeAttrs<-eAttrs
+ 
+# Set the color, etc, of the tree
+attributes<-list(node=list(label="foo", fillcolor="lightgreen", fontsize="15"),
+ edge=list(color="red"),graph=list(rankdir="LR"))
+ 
+#Plot the probability tree using Rgraphvis
+plot(rEG, edgeAttrs=eAttrs, attrs=attributes)
+nodes(rEG)
+edges(rEG)
+ 
+#Add the probability values to the leaves of A&B, A&B', A'&B, A'&B'
+text(500,420,round(aANDb,4), cex=.8)
+ 
+text(500,280,round(aANDnotb,4),cex=.8)
+ 
+text(500,160,round(notaANDb,4),cex=.8)
+ 
+text(500,30,round(notaANDnotb,4),cex=.8)
+ 
+text(340,440,"(Adopted | Is Pitbull)",cex=.8)
+ 
+text(340,230,"(Euthanized | Is Pitbull)",cex=.8)
+ 
+#Write a table in the lower left of the probablites of A and B
+text(80,50,paste("P(A):",round(a,4)),cex=.9, col="darkgreen")
+text(80,20,paste("P(A'):",round(notA,4)),cex=.9, col="darkgreen")
+ 
+text(160,50,paste("P(B):",round(b,digits=4)),cex=.9)
+text(160,20,paste("P(B'):",round(notB, 4)),cex=.9)
+ 
+text(80,420,paste("P(A|B): ",round(aGivenb,digits=4)),cex=.9,col="blue")
+
+```  
+
+https://www.harrysurden.com/wordpress/archives/292 refrenced to help build the tree diagram. 
+
+
+
+
+
+# Hypthosesis 
 Null Hypothesis (H0): The populations average length of stay for Pit Bulls is equal to the general populations average length of stay.
 Alternative Hypothesis (HA): The populations average length of stay for Pit Bulls is different from the general population's average length of stay
 
 ```{r}
+
 dog_intake.df <- dog_intake.df %>%
   mutate(Pitbull = ifelse(grepl("PIT BULL", breed), "Pitbull", "Other Breed"))
 pitbull_data <- dog_intake.df %>%
@@ -72,6 +274,7 @@ t_test_pitbull_vs_other_breeds
 
 ```
 We reject the null hypothesis because we have a small p-value (p < 0.05) This means there's significant evidence to suggest that the average stay duration of Pit bulls differs from the average stay duration of other dog breeds in the Louisville metro area.
+
 ```{r}
 #Confidence interval
 n <- sum(!is.na(dog_intake.df$timeHeld)) 
@@ -85,4 +288,3 @@ lower_ci
 upper_ci  
 
 ```
-
